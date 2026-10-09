@@ -12,10 +12,11 @@ class GradientBackground extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFFB2DFDB), // hijau muda
-            Color(0xFFE0F7FA), // putih kebiruan
-            Color(0xFFB3E5FC), // biru muda
+            Color(0xFFB8E6C1), // hijau muda (dari #33CC66 dengan opacity)
+            Color(0xFFFFFFFF), // putih tengah
+            Color(0xFFB3D9FF), // biru muda (dari #3399FF dengan opacity)
           ],
+          stops: [0.0, 0.5, 1.0],
         ),
       ),
       child: child,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 class CustomTextField extends StatelessWidget {
   final String label;
@@ -26,7 +27,7 @@ class CustomTextField extends StatelessWidget {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1E293B),
+            color: AppColors.darkNavy,
           ),
         ),
         const SizedBox(height: 6),
@@ -36,24 +37,26 @@ class CustomTextField extends StatelessWidget {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+            hintStyle: const TextStyle(
+                color: AppColors.lightGrey, fontSize: 13),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppColors.offWhite,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 12,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              borderSide: const BorderSide(color: AppColors.lightGrey),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              borderSide: const BorderSide(color: AppColors.lightGrey),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+              borderSide: const BorderSide(
+                  color: AppColors.primaryGreen, width: 1.5),
             ),
           ),
         ),

@@ -45,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -59,7 +59,7 @@ class _LoginPageState extends State<LoginPage> {
                       height: 4,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Colors.green, Colors.lightBlue],
+                          colors: [AppColors.primaryGreen, AppColors.primaryBlue],
                         ),
                         borderRadius: BorderRadius.circular(2),
                       ),
@@ -112,7 +112,7 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         const Text(
                           'Belum punya akun?',
-                          style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                          style: TextStyle(fontSize: 12, color: AppColors.darkNavy),
                         ),
                         TextButton(
                           onPressed: () {
@@ -124,7 +124,7 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           child: const Text(
                             'Daftar di sini',
-                            style: TextStyle(fontSize: 12, color: Colors.blue),
+                            style: TextStyle(fontSize: 12, color: AppColors.primaryBlue),
                           ),
                         ),
                       ],

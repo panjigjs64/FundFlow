@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/theme/app_colors.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/gradient_background.dart';
 import 'main_nav_page.dart';
@@ -27,7 +28,7 @@ class LoginSuccessPage extends StatelessWidget {
                   width: 200,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Colors.green, Colors.lightBlue],
+                      colors: [AppColors.primaryGreen, AppColors.primaryBlue],
                     ),
                     borderRadius: BorderRadius.circular(2),
                   ),
@@ -45,34 +46,34 @@ class LoginSuccessPage extends StatelessWidget {
                       Positioned(
                         top: 10,
                         left: 30,
-                        child: _dot(const Color(0xFF4FC3F7)),
+                        child: _dot(AppColors.primaryBlue),
                       ),
                       Positioned(
                         top: 20,
                         right: 25,
-                        child: _dot(const Color(0xFF4CAF50)),
+                        child: _dot(AppColors.primaryGreen),
                       ),
                       Positioned(
                         bottom: 15,
                         left: 20,
-                        child: _dot(const Color(0xFF4CAF50)),
+                        child: _dot(AppColors.primaryGreen),
                       ),
                       Positioned(
                         bottom: 25,
                         right: 30,
-                        child: _dot(const Color(0xFF4FC3F7)),
+                        child: _dot(AppColors.primaryBlue),
                       ),
                       Positioned(
                         top: 5,
                         right: 55,
-                        child: _dot(const Color(0xFFFFC107)),
+                        child: _dot(AppColors.primaryGreen),
                       ),
                       // Lingkaran centang
                       Container(
                         width: 70,
                         height: 70,
                         decoration: const BoxDecoration(
-                          color: Color(0xFF4CAF50),
+                          color: AppColors.primaryGreen,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.check,
@@ -87,14 +88,14 @@ class LoginSuccessPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
+                    color: AppColors.textDark,
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'Selamat datang kembali\nAkunmu berhasil diverifikasi',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  style: TextStyle(fontSize: 12, color: AppColors.textGrey),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
