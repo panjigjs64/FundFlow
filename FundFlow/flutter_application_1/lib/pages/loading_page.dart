@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/theme/app_colors.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/simulation_provider.dart';
 import '../widgets/gradient_background.dart';
+import '../theme/app_colors.dart';
 import 'login_page.dart';
+import 'main_nav_page.dart';
 
 class LoadingPage extends StatefulWidget {
   const LoadingPage({super.key});
@@ -15,14 +19,35 @@ class _LoadingPageState extends State<LoadingPage> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-        );
-      }
-    });
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+
+    final auth = context.read<AuthProvider>();
+    final sim = context.read<SimulationProvider>();
+
+    await auth.loadSession();
+
+    if (!mounted) return;
+
+    if (auth.isLoggedIn) {
+      sim.clearMemory();
+      await sim.loadForUser(auth.currentUser!.id);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavPage()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    }
   }
 
   @override
@@ -33,35 +58,28 @@ class _LoadingPageState extends State<LoadingPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // ===== LOGO F =====
-              // Ganti dengan Image.asset jika sudah punya filenya
               Image.asset(
                 'assets/images/logo_fundflow.png',
                 width: 140,
                 height: 140,
                 fit: BoxFit.contain,
-                // Fallback kalau gambar belum ada (biar tidak error)
-                errorBuilder: (context, error, stackTrace) {
-                  return const SizedBox(
-                    width: 140,
-                    height: 140,
-                    child: Center(
-                      child: Text(
-                        'F',
-                        style: TextStyle(
-                          fontSize: 100,
-                          fontWeight: FontWeight.bold,
-                          fontStyle: FontStyle.italic,
-                          color: Color(0xFF4FC3F7),
-                        ),
+                errorBuilder: (_, __, ___) => const SizedBox(
+                  width: 140,
+                  height: 140,
+                  child: Center(
+                    child: Text(
+                      'F',
+                      style: TextStyle(
+                        fontSize: 100,
+                        fontWeight: FontWeight.bold,
+                        fontStyle: FontStyle.italic,
+                        color: AppColors.primaryBlue,
                       ),
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
-
-              // ===== TEXT "FundFlow" dengan 2 warna =====
               RichText(
                 text: const TextSpan(
                   style: TextStyle(
@@ -72,11 +90,11 @@ class _LoadingPageState extends State<LoadingPage> {
                   children: [
                     TextSpan(
                       text: 'Fund',
-                      style: TextStyle(color: AppColors.primaryGreen), // hijau
+                      style: TextStyle(color: AppColors.primaryGreen),
                     ),
                     TextSpan(
                       text: 'Flow',
-                      style: TextStyle(color: AppColors.primaryBlue), // biru
+                      style: TextStyle(color: AppColors.primaryBlue),
                     ),
                   ],
                 ),

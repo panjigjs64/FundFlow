@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/simulation_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
@@ -17,13 +20,38 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  void _login() {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    final auth = context.read<AuthProvider>();
+    final sim = context.read<SimulationProvider>();
+
+    final res = await auth.login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    if (!res.success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Isi email dan kata sandi!')),
+        SnackBar(content: Text(res.message)),
       );
       return;
     }
+
+    // ⚠️ Bersihkan memori dulu (kalau ada user sebelumnya)
+    // lalu load data user yang baru login dari storage
+    sim.clearMemory();
+    await sim.loadForUser(auth.currentUser!.id);
+
+    if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const LoginSuccessPage()),
@@ -32,6 +60,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
     return Scaffold(
       body: GradientBackground(
         child: SafeArea(
@@ -41,7 +71,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.card(context),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -54,31 +84,35 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Top accent bar
                     Container(
                       height: 4,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [AppColors.primaryGreen, AppColors.primaryBlue],
+                          colors: [
+                            AppColors.primaryGreen,
+                            AppColors.primaryBlue,
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'Selamat Datang Kembali',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
+                        color: AppColors.text(context),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Masukkan detail akunmu untuk mulai mengelola keuangan',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSub(context)),
                     ),
                     const SizedBox(height: 24),
                     CustomTextField(
@@ -100,19 +134,26 @@ class _LoginPageState extends State<LoginPage> {
                         onPressed: () {},
                         child: const Text(
                           'Lupa kata sandi?',
-                          style: TextStyle(fontSize: 12, color: Colors.blue),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primaryBlue),
                         ),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    CustomButton(label: 'Masuk', onPressed: _login),
+                    CustomButton(
+                      label: isLoading ? 'Memuat...' : 'Masuk',
+                      onPressed: isLoading ? () {} : _login,
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           'Belum punya akun?',
-                          style: TextStyle(fontSize: 12, color: AppColors.darkNavy),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSub(context)),
                         ),
                         TextButton(
                           onPressed: () {
@@ -124,7 +165,9 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           child: const Text(
                             'Daftar di sini',
-                            style: TextStyle(fontSize: 12, color: AppColors.primaryBlue),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primaryBlue),
                           ),
                         ),
                       ],

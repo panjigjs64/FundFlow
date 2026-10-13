@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
@@ -18,13 +20,29 @@ class _RegisterPageState extends State<RegisterPage> {
   final _sandi = TextEditingController();
   final _konfirmasi = TextEditingController();
 
-  void _register() {
-    if (_nama.text.isEmpty || _email.text.isEmpty) {
+  Future<void> _register() async {
+    if (_sandi.text != _konfirmasi.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lengkapi data terlebih dahulu!')),
+        const SnackBar(content: Text('Konfirmasi kata sandi tidak cocok')),
       );
       return;
     }
+
+    final auth = context.read<AuthProvider>();
+    final res = await auth.register(
+      nama: _nama.text,
+      email: _email.text,
+      password: _sandi.text,
+    );
+
+    if (!mounted) return;
+    if (!res.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(res.message)),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CompleteProfilePage()),
@@ -33,6 +51,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
     return Scaffold(
       body: GradientBackground(
         child: SafeArea(
@@ -52,7 +72,10 @@ class _RegisterPageState extends State<RegisterPage> {
                       height: 4,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Colors.green, Colors.lightBlue],
+                          colors: [
+                            AppColors.primaryGreen,
+                            AppColors.primaryBlue,
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(2),
                       ),
@@ -64,14 +87,15 @@ class _RegisterPageState extends State<RegisterPage> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
+                        color: AppColors.darkNavy,
                       ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
                       'Lengkapi data diri di bawah untuk mulai.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textGrey),
                     ),
                     const SizedBox(height: 20),
                     CustomTextField(
@@ -101,7 +125,10 @@ class _RegisterPageState extends State<RegisterPage> {
                       obscure: true,
                     ),
                     const SizedBox(height: 20),
-                    CustomButton(label: 'Buat Akun', onPressed: _register),
+                    CustomButton(
+                      label: isLoading ? 'Memuat...' : 'Buat Akun',
+                      onPressed: isLoading ? () {} : _register,
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -115,8 +142,9 @@ class _RegisterPageState extends State<RegisterPage> {
                           onPressed: () => Navigator.pop(context),
                           child: const Text(
                             'Masuk di sini',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.blue),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primaryBlue),
                           ),
                         ),
                       ],

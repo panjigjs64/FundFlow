@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/theme/app_colors.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/gradient_background.dart';
+import '../theme/app_colors.dart';
 import 'main_nav_page.dart';
 
 class LoginSuccessPage extends StatelessWidget {
@@ -16,59 +16,52 @@ class LoginSuccessPage extends StatelessWidget {
             margin: const EdgeInsets.all(24),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.card(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Top accent bar
                 Container(
                   height: 4,
                   width: 200,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [AppColors.primaryGreen, AppColors.primaryBlue],
+                      colors: [
+                        AppColors.primaryGreen,
+                        AppColors.primaryBlue,
+                      ],
                     ),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Ikon centang dengan dekorasi titik
                 SizedBox(
                   width: 140,
                   height: 140,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Titik-titik dekoratif di sekeliling
                       Positioned(
-                        top: 10,
-                        left: 30,
-                        child: _dot(AppColors.primaryBlue),
-                      ),
+                          top: 10,
+                          left: 30,
+                          child: _dot(AppColors.primaryBlue)),
                       Positioned(
-                        top: 20,
-                        right: 25,
-                        child: _dot(AppColors.primaryGreen),
-                      ),
+                          top: 20,
+                          right: 25,
+                          child: _dot(AppColors.primaryGreen)),
                       Positioned(
-                        bottom: 15,
-                        left: 20,
-                        child: _dot(AppColors.primaryGreen),
-                      ),
+                          bottom: 15,
+                          left: 20,
+                          child: _dot(AppColors.primaryGreen)),
                       Positioned(
-                        bottom: 25,
-                        right: 30,
-                        child: _dot(AppColors.primaryBlue),
-                      ),
+                          bottom: 25,
+                          right: 30,
+                          child: _dot(AppColors.primaryBlue)),
                       Positioned(
-                        top: 5,
-                        right: 55,
-                        child: _dot(AppColors.primaryGreen),
-                      ),
-                      // Lingkaran centang
+                          top: 5,
+                          right: 55,
+                          child: _dot(const Color(0xFFFFC107))),
                       Container(
                         width: 70,
                         height: 70,
@@ -83,19 +76,20 @@ class LoginSuccessPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Login Berhasil',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
+                    color: AppColors.text(context),
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Selamat datang kembali\nAkunmu berhasil diverifikasi',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.textSub(context)),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -103,10 +97,11 @@ class LoginSuccessPage extends StatelessWidget {
                   child: CustomButton(
                     label: 'Lanjutkan',
                     onPressed: () {
-                      Navigator.pushReplacement(
+                      Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
                             builder: (_) => const MainNavPage()),
+                        (route) => false,
                       );
                     },
                   ),

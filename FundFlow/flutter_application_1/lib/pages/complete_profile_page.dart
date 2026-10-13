@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
@@ -18,7 +20,14 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   final _tahun = TextEditingController();
   final _telepon = TextEditingController();
 
-  void _selesai() {
+  Future<void> _selesai() async {
+    await context.read<AuthProvider>().updateProfile(
+          institusi: _institusi.text,
+          tingkat: _tingkat.text,
+          tahunLulus: _tahun.text,
+          nomorTelepon: _telepon.text,
+        );
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const RegisterSuccessPage()),
@@ -46,7 +55,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       height: 4,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Colors.green, Colors.lightBlue],
+                          colors: [
+                            AppColors.primaryGreen,
+                            AppColors.primaryBlue,
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(2),
                       ),
@@ -58,14 +70,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
+                        color: AppColors.darkNavy,
                       ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
                       'Isi detail akademik dan kontakmu di sini.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textGrey),
                     ),
                     const SizedBox(height: 20),
                     CustomTextField(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/gradient_background.dart';
+import '../theme/app_colors.dart';
 import 'main_nav_page.dart';
 
 class RegisterSuccessPage extends StatelessWidget {
@@ -15,7 +16,7 @@ class RegisterSuccessPage extends StatelessWidget {
             margin: const EdgeInsets.all(24),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.card(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
@@ -23,9 +24,13 @@ class RegisterSuccessPage extends StatelessWidget {
               children: [
                 Container(
                   height: 4,
+                  width: 200,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Colors.green, Colors.lightBlue],
+                      colors: [
+                        AppColors.primaryGreen,
+                        AppColors.primaryBlue,
+                      ],
                     ),
                     borderRadius: BorderRadius.circular(2),
                   ),
@@ -35,26 +40,27 @@ class RegisterSuccessPage extends StatelessWidget {
                   width: 70,
                   height: 70,
                   decoration: const BoxDecoration(
-                    color: Color(0xFF4CAF50),
+                    color: AppColors.primaryGreen,
                     shape: BoxShape.circle,
                   ),
-                  child:
-                      const Icon(Icons.check, color: Colors.white, size: 44),
+                  child: const Icon(Icons.check,
+                      color: Colors.white, size: 44),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Daftar Berhasil',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
+                    color: AppColors.text(context),
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Selamat datang!\nSilahkan klik tombol dibawah',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.textSub(context)),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -62,10 +68,11 @@ class RegisterSuccessPage extends StatelessWidget {
                   child: CustomButton(
                     label: 'Lanjutkan',
                     onPressed: () {
-                      Navigator.pushReplacement(
+                      Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
                             builder: (_) => const MainNavPage()),
+                        (route) => false,
                       );
                     },
                   ),
