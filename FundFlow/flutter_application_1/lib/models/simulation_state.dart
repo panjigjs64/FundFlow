@@ -17,11 +17,15 @@ class SimulationState {
 
   final PeriodeType? periode;
   final int? periodeHari;
+  
+  // TAMBAHAN: Tanggal mulai simulasi untuk kalenderisasi
+  final DateTime? startDate;
+
   final List<BebanWajibModel> bebanWajib;
   final List<TargetModel> targets;
   final List<TransaksiModel> transaksiList;
   final List<AchievementModel> achievements;
-  final List<String> eventLog; // id event yang sudah terjadi
+  final List<String> eventLog;
 
   SimulationState({
     this.status = SimulationStatus.idle,
@@ -32,6 +36,7 @@ class SimulationState {
     this.saldoAwal = 0,
     this.periode,
     this.periodeHari,
+    this.startDate,
     this.bebanWajib = const [],
     this.targets = const [],
     this.transaksiList = const [],
@@ -63,7 +68,6 @@ class SimulationState {
       .where((t) => !t.isPemasukan)
       .fold(0.0, (s, t) => s + t.jumlah);
 
-  /// Total dana darurat yang terkumpul dari semua target
   double get totalDanaDarurat => targets
       .where((t) => t.iconKey == 'shield' || t.nama.toLowerCase().contains('darurat'))
       .fold(0.0, (s, t) => s + t.jumlahTerkumpul);
@@ -86,6 +90,12 @@ class SimulationState {
   bool get periodeSelesai =>
       periodeHari != null && currentDay >= periodeHari!;
 
+  /// Mengembalikan tanggal aktual simulasi berdasarkan startDate + total hari berjalan
+  DateTime get currentRealDate {
+    if (startDate == null) return DateTime.now();
+    return startDate!.add(Duration(days: totalHari));
+  }
+
   SimulationState copyWith({
     SimulationStatus? status,
     int? currentDay,
@@ -95,6 +105,7 @@ class SimulationState {
     double? saldoAwal,
     PeriodeType? periode,
     int? periodeHari,
+    DateTime? startDate,
     List<BebanWajibModel>? bebanWajib,
     List<TargetModel>? targets,
     List<TransaksiModel>? transaksiList,
@@ -110,6 +121,7 @@ class SimulationState {
       saldoAwal: saldoAwal ?? this.saldoAwal,
       periode: periode ?? this.periode,
       periodeHari: periodeHari ?? this.periodeHari,
+      startDate: startDate ?? this.startDate,
       bebanWajib: bebanWajib ?? this.bebanWajib,
       targets: targets ?? this.targets,
       transaksiList: transaksiList ?? this.transaksiList,

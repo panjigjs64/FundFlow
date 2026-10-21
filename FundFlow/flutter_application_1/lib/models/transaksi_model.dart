@@ -3,8 +3,9 @@ class TransaksiModel {
   final String keterangan;
   final double jumlah;
   final bool isPemasukan;
-  final int hariKe; // hari ke-berapa dalam simulasi
+  final int hariKe;
   final DateTime tanggal;
+  final String kategori; // BARU: Makanan, Transport, dll
 
   TransaksiModel({
     required this.id,
@@ -13,6 +14,7 @@ class TransaksiModel {
     required this.isPemasukan,
     required this.hariKe,
     required this.tanggal,
+    this.kategori = 'Lainnya',
   });
 
   Map<String, dynamic> toJson() => {
@@ -22,6 +24,7 @@ class TransaksiModel {
         'isPemasukan': isPemasukan,
         'hariKe': hariKe,
         'tanggal': tanggal.toIso8601String(),
+        'kategori': kategori,
       };
 
   factory TransaksiModel.fromJson(Map<String, dynamic> json) => TransaksiModel(
@@ -31,5 +34,6 @@ class TransaksiModel {
         isPemasukan: json['isPemasukan'] ?? false,
         hariKe: json['hariKe'] ?? 0,
         tanggal: DateTime.tryParse(json['tanggal'] ?? '') ?? DateTime.now(),
+        kategori: json['kategori'] ?? 'Lainnya',
       );
 }

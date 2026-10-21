@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart'; 
 import 'pages/loading_page.dart';
 import 'providers/auth_provider.dart';
 import 'providers/simulation_provider.dart';
 import 'providers/theme_provider.dart';
 import 'theme/app_colors.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await initializeDateFormatting('id_ID', null); 
+
   runApp(
     MultiProvider(
       providers: [

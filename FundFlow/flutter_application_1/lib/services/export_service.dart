@@ -17,12 +17,12 @@ class ExportService {
   static Future<void> exportCSV(SimulationState state) async {
     final buffer = StringBuffer();
 
-    // ===== HEADER =====
+    // HEADER
     buffer.writeln('LAPORAN KEUANGAN FUNDFLOW');
     buffer.writeln('Diekspor: ${_formatDate(DateTime.now())}');
     buffer.writeln('');
 
-    // ===== RINGKASAN =====
+    // RINGKASAN
     buffer.writeln('=== RINGKASAN ===');
     buffer.writeln('Periode,${state.periodeLabel}');
     buffer.writeln('Periode Ke-,${state.currentPeriod}');
@@ -30,52 +30,20 @@ class ExportService {
     buffer.writeln('Saldo Awal,${_formatRp(state.saldoAwal)}');
     buffer.writeln('Saldo Saat Ini,${_formatRp(state.saldo)}');
     buffer.writeln('Total Pemasukan,${_formatRp(state.totalPemasukan)}');
-    buffer.writeln(
-        'Total Pengeluaran,${_formatRp(state.totalPengeluaran)}');
-    buffer.writeln(
-        'Total Beban Wajib,${_formatRp(state.totalBebanWajib)}');
-    buffer.writeln(
-        'Total Dana Darurat,${_formatRp(state.totalDanaDarurat)}');
+    buffer.writeln('Total Pengeluaran,${_formatRp(state.totalPengeluaran)}');
     buffer.writeln('');
 
-    // ===== BEBAN WAJIB =====
-    buffer.writeln('=== BEBAN WAJIB ===');
-    buffer.writeln('Nama,Jumlah');
-    for (final b in state.bebanWajib) {
-      buffer.writeln('${_escape(b.nama)},${_formatRp(b.jumlah)}');
-    }
-    buffer.writeln('');
-
-    // ===== TARGET =====
-    buffer.writeln('=== TARGET ===');
-    buffer.writeln('Nama,Periode,Target,Terkumpul,Progress');
-    for (final t in state.targets) {
-      buffer.writeln(
-          '${_escape(t.nama)},${_escape(t.labelPeriode)},${_formatRp(t.jumlahTarget)},${_formatRp(t.jumlahTerkumpul)},${(t.progress * 100).toStringAsFixed(1)}%');
-    }
-    buffer.writeln('');
-
-    // ===== TRANSAKSI =====
+    // TRANSAKSI
     buffer.writeln('=== TRANSAKSI ===');
-    buffer.writeln('Hari,Tanggal,Keterangan,Tipe,Jumlah');
+    buffer.writeln('Hari,Tanggal,Kategori,Keterangan,Tipe,Jumlah');
     for (final t in state.transaksiList) {
       buffer.writeln(
-          '${t.hariKe},${_formatDate(t.tanggal)},${_escape(t.keterangan)},${t.isPemasukan ? "Pemasukan" : "Pengeluaran"},${_formatRp(t.jumlah)}');
-    }
-    buffer.writeln('');
-
-    // ===== ACHIEVEMENT =====
-    buffer.writeln('=== PENCAPAIAN ===');
-    buffer.writeln('Judul,Deskripsi,Status');
-    for (final a in state.achievements) {
-      buffer.writeln(
-          '${_escape(a.judul)},${_escape(a.deskripsi)},${a.unlocked ? "Tercapai" : "Belum"}');
+          '${t.hariKe},${_formatDate(t.tanggal)},${_escape(t.kategori)},${_escape(t.keterangan)},${t.isPemasukan ? "Pemasukan" : "Pengeluaran"},${_formatRp(t.jumlah)}');
     }
 
-    // ===== SIMPAN & SHARE =====
+    // SIMPAN & SHARE
     final dir = await getTemporaryDirectory();
-    final filename =
-        'FundFlow_Export_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
+    final filename = 'FundFlow_Export_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
     final file = File('${dir.path}/$filename');
     await file.writeAsString(buffer.toString());
 

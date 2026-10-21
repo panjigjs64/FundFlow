@@ -1,197 +1,172 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../providers/simulation_provider.dart';
 import '../../theme/app_colors.dart';
-import '../../data/target_icons.dart';
-import '../../widgets/charts.dart';
-import '../setup_simulation_page.dart';
 
-class InsightTab extends StatelessWidget {
+class InsightTab extends StatefulWidget {
   const InsightTab({super.key});
+  @override
+  State<InsightTab> createState() => _InsightTabState();
+}
 
-  String _formatRp(double angka) {
-    final str = angka.toStringAsFixed(0);
-    final buf = StringBuffer();
-    int c = 0;
-    for (int i = str.length - 1; i >= 0; i--) {
-      buf.write(str[i]);
-      c++;
-      if (c % 3 == 0 && i != 0) buf.write('.');
+class _InsightTabState extends State<InsightTab> {
+  String _filter = 'Bulan';
+
+  String _formatRp(double angka) => NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(angka);
+
+  // ============================================================
+  // LOGIKA KALENDER DINAMIS
+  // ============================================================
+  String _getTanggalLabel(DateTime currentDate, String filter, int totalHari) {
+    if (filter == 'Minggu') {
+      // Hitung minggu ke berapa berdasarkan total hari yang sudah dijalani
+      int mingguKe = (totalHari ~/ 7) + 1;
+      return 'Minggu ke-$mingguKe';
+    } else if (filter == 'Bulan') {
+      return DateFormat('MMMM yyyy', 'id_ID').format(currentDate);
+    } else {
+      return DateFormat('yyyy', 'id_ID').format(currentDate);
     }
-    return 'Rp ${buf.toString().split('').reversed.join()}';
-  }
-
-  Future<void> _openSetup(BuildContext context) async {
-    context.read<SimulationProvider>().clearDraft();
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SetupSimulationPage()),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final sim = context.watch<SimulationProvider>();
-    final isDark = AppColors.isDark(context);
+    final s = sim.state;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [AppColors.darkHeaderGreen, AppColors.darkBg]
-              : [AppColors.headerGreenLight, Colors.white],
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 90),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _header(),
-              if (sim.isOff)
-                _modeOff(context)
-              else
-                _modeOn(context, sim),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+    // --- Hitung Alokasi Kategori Asli dari Transaksi ---
+    final Map<String, double> kategoriMap = {};
+    for (var t in s.transaksiList.where((t) => !t.isPemasukan)) {
+      // (Opsional) Jangan hitung tabungan agar pie chart fokus ke jajan/harian
+      if (t.kategori == 'Tabungan') continue; 
+      kategoriMap[t.kategori] = (kategoriMap[t.kategori] ?? 0) + t.jumlah;
+    }
+    final totalPengeluaran = kategoriMap.values.fold(0.0, (a, b) => a + b);
+    
+    // --- Warna Pie Chart ---
+    final colors = [AppColors.primaryGreen, AppColors.primaryBlue, Colors.orange, Colors.purple, Colors.red];
+    int colorIdx = 0;
+    List<PieChartSectionData> pieSections = [];
+    kategoriMap.forEach((key, value) {
+      if (value > 0) {
+        pieSections.add(PieChartSectionData(color: colors[colorIdx % colors.length], value: value, title: '', radius: 20));
+        colorIdx++;
+      }
+    });
 
-  Widget _header() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
-        children: const [
-          Icon(Icons.savings, color: AppColors.primaryGreen, size: 24),
-          SizedBox(width: 6),
-          Text(
-            'FundFlow',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryGreen,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============ OFF ============
-  Widget _modeOff(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          Container(
-            height: 130,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Center(
-              child: Icon(Icons.bar_chart,
-                  size: 70, color: AppColors.primaryGreen),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Pegang Kendali Keuangan\nMahasiswa Bersama FundFlow',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              height: 1.3,
-              color: AppColors.text(context),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Minimal uang saku tanpa drama finansial. Atur anggaran harian, '
-            'simulasi bulanan, dan capai target impianmu secara realistis.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 10.5,
-                height: 1.4,
-                color: AppColors.textSub(context)),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () => _openSetup(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 22, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              elevation: 0,
-            ),
-            child: const Text(
-              'START SIMULATION',
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _insightCardKosong(context),
-          _kinerjaCardKosong(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _insightCardKosong(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.card(context),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+    return Scaffold(
+      backgroundColor: AppColors.card(context),
+      appBar: AppBar(title: const Text('Insight', style: TextStyle(fontWeight: FontWeight.bold)), backgroundColor: AppColors.card(context), elevation: 0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Insight & Analisis Keuangan Anda',
-                style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.text(context))),
-            const SizedBox(height: 12),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.7,
-              children: List.generate(
-                4,
-                (_) => Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.inputFill(context),
-                    borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: AppColors.border(context)),
+            // ===== FILTER TABS (Minggu, Bulan, Tahun) =====
+            Container(
+              decoration: BoxDecoration(color: AppColors.offWhite, borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.all(4),
+              child: Row(
+                children: ['Minggu', 'Bulan', 'Tahun'].map((e) => Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _filter = e),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(color: _filter == e ? AppColors.primaryGreen : Colors.transparent, borderRadius: BorderRadius.circular(16)),
+                      child: Text(e, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: _filter == e ? Colors.white : AppColors.textGrey)),
+                    ),
                   ),
+                )).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ===== TAMPILAN TANGGAL KALENDER DINAMIS =====
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.refresh, size: 16, color: AppColors.textSub(context)),
+                  const SizedBox(width: 8),
+                  Text(
+                    _getTanggalLabel(s.currentRealDate, _filter, s.totalHari),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.text(context)),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.textSub(context)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // ===== RINGKASAN PEMASUKAN & PENGELUARAN =====
+            Row(
+              children: [
+                Expanded(child: _summaryBox('Total Pemasukan', s.totalPemasukan, AppColors.primaryGreen)),
+                const SizedBox(width: 12),
+                Expanded(child: _summaryBox('Total Pengeluaran', s.totalPengeluaran, AppColors.dangerRed)),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // ===== PIE CHART ALOKASI =====
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: AppColors.card(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border(context))),
+              child: pieSections.isEmpty 
+                ? Center(child: Text('Belum ada pengeluaran', style: TextStyle(color: AppColors.textSub(context))))
+                : Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(height: 150, child: PieChart(PieChartData(sectionsSpace: 2, centerSpaceRadius: 50, sections: pieSections))),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          children: kategoriMap.entries.map((e) {
+                            final pct = totalPengeluaran > 0 ? (e.value / totalPengeluaran * 100).toStringAsFixed(0) : '0';
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(children: [
+                                Icon(Icons.circle, size: 10, color: colors[kategoriMap.keys.toList().indexOf(e.key) % colors.length]),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(e.key, style: const TextStyle(fontSize: 12))),
+                                Text('$pct%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ]),
+                            );
+                          }).toList(),
+                        ),
+                      )
+                    ],
+                  ),
+            ),
+            const SizedBox(height: 24),
+
+            // ===== LINE CHART DINAMIS =====
+            Text('Tren Keuangan ($_filter)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+            const SizedBox(height: 16),
+            Container(
+              height: 200,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppColors.card(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border(context))),
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: AppColors.border(context), strokeWidth: 1, dashArray: [4, 4])),
+                  titlesData: const FlTitlesData(leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)), topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)), bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false))),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: sim.getTrenKeuangan(_filter), 
+                      isCurved: true, 
+                      color: AppColors.primaryGreen, 
+                      barWidth: 3, 
+                      dotData: const FlDotData(show: false), 
+                      belowBarData: BarAreaData(show: true, color: AppColors.primaryGreen.withValues(alpha: 0.1)),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -201,336 +176,15 @@ class InsightTab extends StatelessWidget {
     );
   }
 
-  Widget _kinerjaCardKosong(BuildContext context) {
+  Widget _summaryBox(String title, double amount, Color color) {
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card(context),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Rincian Kinerja Anggaran',
-              style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text(context))),
-          const SizedBox(height: 12),
-          _tableRow(context, 'Saldo', 'Rp 0,00', 'Rp 0,00'),
-          _tableRow(context, 'Tabungan', 'Rp 0,00', 'Rp 0,00'),
-          _tableRow(context, 'Beban Wajib', 'Rp 0,00', 'Rp 0,00'),
-        ],
-      ),
-    );
-  }
-
-  // ============ ON ============
-  Widget _modeOn(BuildContext context, SimulationProvider sim) {
-    final s = sim.state;
-
-    // DATA PIE CHART
-    final Map<String, double> alokasiData = {};
-    for (final b in s.bebanWajib) {
-      alokasiData[b.nama] = b.jumlah;
-    }
-    for (final t in s.transaksiList) {
-      if (!t.isPemasukan &&
-          !t.keterangan.startsWith('Beban wajib') &&
-          !t.keterangan.startsWith('Event')) {
-        alokasiData[t.keterangan] =
-            (alokasiData[t.keterangan] ?? 0) + t.jumlah;
-      }
-    }
-
-    // DATA BAR CHART
-    final barData = s.targets.map((t) {
-      final ic = TargetIcons.getByKey(t.iconKey);
-      return TabunganBarData(
-        label: t.nama,
-        target: t.jumlahTarget,
-        terkumpul: t.jumlahTerkumpul,
-        color: ic.color,
-      );
-    }).toList();
-
-    // DATA LINE CHART
-    final trenData = <double>[];
-    double running = s.saldoAwal;
-    for (int d = 0; d <= s.totalHari; d++) {
-      final trxHariItu =
-          s.transaksiList.where((t) => t.hariKe == d).toList();
-      for (final t in trxHariItu) {
-        running += t.isPemasukan ? t.jumlah : -t.jumlah;
-      }
-      trenData.add(running < 0 ? 0 : running);
-    }
-
-    // STATISTIK
-    final pengeluaranHarian = s.totalPengeluaran -
-        s.bebanWajib.fold<double>(0, (sum, b) => sum + b.jumlah);
-    final hariBerjalan = s.totalHari + 1;
-    final rataHarian =
-        hariBerjalan > 0 ? pengeluaranHarian / hariBerjalan : 0.0;
-    final hariBertahan = rataHarian > 0 ? s.saldo / rataHarian : 999.0;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          // Card 1: Statistik
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.card(context),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Insight & Analisis Keuangan Anda',
-                    style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.text(context))),
-                const SizedBox(height: 12),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.55,
-                  children: [
-                    _statCard(
-                      'Budget vs Pengeluaran',
-                      '${_formatRp(s.saldoAwal)} / ${_formatRp(s.totalPengeluaran)}',
-                      AppColors.primaryBlue,
-                      Icons.account_balance_wallet,
-                    ),
-                    _statCard(
-                      'Rata-rata Harian',
-                      _formatRp(rataHarian),
-                      AppColors.primaryGreen,
-                      Icons.trending_down,
-                    ),
-                    _statCard(
-                      'Pola Belanja',
-                      '${s.transaksiList.where((t) => !t.isPemasukan).length} trx',
-                      AppColors.deepBlue,
-                      Icons.receipt_long,
-                    ),
-                    _statCard(
-                      'Saldo Bertahan',
-                      hariBertahan > 900
-                          ? '∞ hari'
-                          : '${hariBertahan.toStringAsFixed(0)} hari',
-                      AppColors.darkNavy,
-                      Icons.hourglass_bottom,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Card 2: Pie Chart
-          _chartCard(
-            context: context,
-            title: 'Alokasi Pengeluaran Bulanan',
-            child: AlokasiPieChart(
-              data: alokasiData,
-              totalSaldo: s.saldoAwal,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Card 3: Bar Chart
-          _chartCard(
-            context: context,
-            title: 'Tabungan Bulanan vs Target Tujuan',
-            child: TabunganBarChart(data: barData),
-          ),
-          const SizedBox(height: 16),
-
-          // Card 4: Line Chart
-          _chartCard(
-            context: context,
-            title: 'Tren Saldo Harian',
-            child: TrenSaldoLineChart(dataPoints: trenData),
-          ),
-          const SizedBox(height: 16),
-
-          // Card 5: Tabel Rincian
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.card(context),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Rincian Kinerja Anggaran',
-                    style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.text(context))),
-                const SizedBox(height: 12),
-                _tableRow(context, 'Saldo', _formatRp(s.saldoAwal),
-                    _formatRp(s.saldo)),
-                _tableRow(context, 'Tabungan', 'Rp 0,00',
-                    _formatRp(s.totalDanaDarurat)),
-                _tableRow(context, 'Beban Wajib', '-',
-                    _formatRp(s.totalBebanWajib)),
-                _tableRow(context, 'Pemasukan', '-',
-                    _formatRp(s.totalPemasukan)),
-                _tableRow(context, 'Pengeluaran', '-',
-                    _formatRp(s.totalPengeluaran)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _statCard(
-      String title, String value, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 12, color: color),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _chartCard({
-    required BuildContext context,
-    required String title,
-    required Widget child,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card(context),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text(context))),
-          const SizedBox(height: 14),
-          child,
-        ],
-      ),
-    );
-  }
-
-  Widget _tableRow(
-      BuildContext context, String label, String rencana, String aktual) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-      decoration: BoxDecoration(
-        color: AppColors.inputFill(context),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.border(context)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-              flex: 2,
-              child: Text(label,
-                  style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.text(context)))),
-          Expanded(
-              child: Text(rencana,
-                  style: TextStyle(
-                      fontSize: 10,
-                      color: AppColors.textSub(context)))),
-          Expanded(
-              child: Text(aktual,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.text(context)))),
-        ],
-      ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: TextStyle(fontSize: 12, color: color)),
+        const SizedBox(height: 4),
+        Text(_formatRp(amount), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+      ]),
     );
   }
 }

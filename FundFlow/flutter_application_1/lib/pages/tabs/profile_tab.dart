@@ -6,7 +6,6 @@ import '../../providers/theme_provider.dart';
 import '../../services/export_service.dart';
 import '../../theme/app_colors.dart';
 import '../login_page.dart';
-import '../setup_simulation_page.dart';
 import '../edit_profile_page.dart';
 
 class ProfileTab extends StatefulWidget {
@@ -17,590 +16,203 @@ class ProfileTab extends StatefulWidget {
 }
 
 class _ProfileTabState extends State<ProfileTab> {
-  bool _notifikasi = true;
-  bool _cadanganData = true;
   bool _isExporting = false;
 
   Future<void> _logout() async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (_) => AlertDialog(
-      title: const Text('Keluar Akun'),
-      content: const Text('Yakin ingin keluar dari akun ini?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Batal'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.dangerRed),
-          child: const Text('Keluar',
-              style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    ),
-  );
-  if (confirm == true) {
-    if (!mounted) return;
-
-    // ⚠️ Clear memory simulasi (data di storage tetap aman)
-    context.read<SimulationProvider>().clearMemory();
-    await context.read<AuthProvider>().logout();
-
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-      (route) => false,
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Keluar Akun'),
+        content: const Text('Yakin ingin keluar dari akun ini?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.dangerRed),
+            child: const Text('Keluar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
-  }
-}
-
-  Future<void> _openSetup(BuildContext context) async {
-    context.read<SimulationProvider>().clearDraft();
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SetupSimulationPage()),
-    );
+    if (confirm == true) {
+      if (!mounted) return;
+      context.read<SimulationProvider>().clearMemory();
+      await context.read<AuthProvider>().logout();
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
+    }
   }
 
-  Future<void> _openEditProfile() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const EditProfilePage()),
-    );
+  void _handleExportCSV() async {
+    setState(() => _isExporting = true);
+    try {
+      await ExportService.exportCSV(context.read<SimulationProvider>().state);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export: $e'), backgroundColor: AppColors.dangerRed),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
   }
 
-  // ============================================================
-  // ==================== BUILD =================================
-  // ============================================================
+  // ===== FUNGSI RESET SIMULASI =====
+  void _handleReset() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset Simulasi'),
+        content: const Text('Yakin ingin menghapus seluruh data simulasi ini? Tindakan ini tidak bisa dibatalkan.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false), 
+            child: const Text('Batal')
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true), 
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.dangerRed),
+            child: const Text('Ya, Reset', style: TextStyle(color: Colors.white))
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm == true) {
+      if (!mounted) return;
+      // Panggil fungsi reset dari provider
+      await context.read<SimulationProvider>().reset();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Simulasi berhasil di-reset! Silakan mulai dari awal.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final sim = context.watch<SimulationProvider>();
-    final isDark = AppColors.isDark(context);
+    final auth = context.watch<AuthProvider>();
+    final theme = context.watch<ThemeProvider>();
+    final user = auth.currentUser;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [AppColors.darkHeaderBlue, AppColors.darkBg]
-              : [AppColors.headerBlueLight, Colors.white],
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
+    return Scaffold(
+      backgroundColor: AppColors.offWhite,
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 90),
+          padding: const EdgeInsets.all(20),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _header(),
-              if (sim.isOff)
-                _modeOff(context)
-              else
-                _modeOn(context),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _header() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
-        children: const [
-          Icon(Icons.savings, color: AppColors.primaryGreen, size: 24),
-          SizedBox(width: 6),
-          Text(
-            'FundFlow',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryGreen,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _modeOff(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          Container(
-            height: 130,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Center(
-              child: Icon(Icons.person,
-                  size: 70, color: AppColors.primaryBlue),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Pegang Kendali Keuangan\nMahasiswa Bersama FundFlow',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              height: 1.3,
-              color: AppColors.text(context),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Minimal uang saku tanpa drama finansial. Atur anggaran harian, '
-            'simulasi bulanan, dan capai target impianmu secara realistis.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 10.5,
-                height: 1.4,
-                color: AppColors.textSub(context)),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () => _openSetup(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 22, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              elevation: 0,
-            ),
-            child: const Text(
-              'START SIMULATION',
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _profileCard(context),
-          const SizedBox(height: 16),
-          _pengaturanCard(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _modeOn(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          _profileCard(context),
-          const SizedBox(height: 16),
-          _pengaturanCard(context),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // ==================== PROFILE CARD ==========================
-  // ============================================================
-  Widget _profileCard(BuildContext context) {
-    final user = context.watch<AuthProvider>().currentUser;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card(context),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Profil Kamu',
-            style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.bold,
-                color: AppColors.text(context)),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Kelola informasi akun dan pengaturan aplikasi anda',
-            style: TextStyle(
-                fontSize: 10, color: AppColors.textSub(context)),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
+              // KARTU PROFIL ATAS
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _readonlyField(context, 'Name', user?.nama ?? '-'),
-                    const SizedBox(height: 8),
-                    _readonlyField(
-                        context, 'Email', user?.email ?? '-'),
-                    const SizedBox(height: 8),
-                    _readonlyField(context, 'Nomor Telepon',
-                        user?.nomorTelepon ?? '-'),
-                    const SizedBox(height: 8),
-                    _readonlyField(context, 'Institusi',
-                        user?.institusi ?? '-'),
-                    const SizedBox(height: 8),
-                    _readonlyField(
-                        context, 'Tingkat', user?.tingkat ?? '-'),
-                    const SizedBox(height: 8),
-                    _readonlyField(context, 'Tahun Lulus',
-                        user?.tahunLulus ?? '-'),
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.2),
+                      child: const Icon(Icons.person, size: 50, color: AppColors.primaryGreen),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      user?.nama ?? 'Nama User',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user?.email ?? 'email@upi.edu',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfilePage())),
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text('Edit Profil'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
+                        side: const BorderSide(color: AppColors.primaryGreen),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Column(
-                children: [
-                  Container(
-                    width: 75,
-                    height: 75,
-                    decoration: BoxDecoration(
-                      color: AppColors.border(context),
-                      borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 20),
+
+              // MENU LIST
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _menuItem(Icons.person_outline, 'Informasi Akun'),
+                    _menuItem(Icons.color_lens_outlined, 'Tema Aplikasi', trailing: Switch(
+                      value: theme.isDark,
+                      onChanged: (v) => theme.toggle(v),
+                      activeColor: AppColors.primaryGreen,
+                      activeTrackColor: AppColors.primaryGreen.withValues(alpha: 0.5),
+                    )),
+                    _menuItem(Icons.language, 'Bahasa', trailing: const Text('Indonesia', style: TextStyle(color: AppColors.textGrey, fontSize: 12))),
+                    _menuItem(Icons.download_outlined, 'Export Laporan CSV', onTap: _handleExportCSV, 
+                      trailing: _isExporting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : null
                     ),
-                    child: const Icon(Icons.person,
-                        color: Colors.white, size: 42),
+                    _menuItem(Icons.picture_as_pdf_outlined, 'Download PDF', onTap: () {}),
+                    _menuItem(Icons.refresh, 'Reset Simulasi', onTap: _handleReset), // Tombol Reset
+                    _menuItem(Icons.help_outline, 'Pusat Bantuan'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // TOMBOL KELUAR
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _logout,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.dangerRed.withValues(alpha: 0.1),
+                    foregroundColor: AppColors.dangerRed,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  const SizedBox(height: 4),
-                  Text('Gambar Profil',
-                      style: TextStyle(
-                          fontSize: 9,
-                          color: AppColors.textSub(context))),
-                ],
+                  child: const Text('Keluar Akun', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
               ),
+              const SizedBox(height: 20),
+              const Text('FundFlow v1.0.0', style: TextStyle(fontSize: 10, color: AppColors.textGrey)),
             ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _openEditProfile,
-              icon: const Icon(Icons.edit, size: 16),
-              label: const Text('Simpan Perubahan',
-                  style: TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // ==================== PENGATURAN CARD =======================
-  // ============================================================
-  Widget _pengaturanCard(BuildContext context) {
-    final theme = context.watch<ThemeProvider>();
-    final sim = context.watch<SimulationProvider>();
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card(context),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Pengaturan Akun',
-            style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.bold,
-                color: AppColors.text(context)),
-          ),
-          const SizedBox(height: 10),
-
-          // ===== DARK MODE =====
-          _switchRow(
-            context,
-            '🌙 Mode Gelap',
-            'Aktifkan tema gelap untuk kenyamanan mata',
-            theme.isDark,
-            (v) => theme.toggle(v),
-          ),
-
-          // ===== NOTIFIKASI =====
-          _switchRow(
-            context,
-            'Notifikasi',
-            'Pengaturan notifikasi & Pengingat Transaksional',
-            _notifikasi,
-            (v) => setState(() => _notifikasi = v),
-          ),
-
-          // ===== CADANGAN DATA =====
-          _switchRow(
-            context,
-            'Cadangan Data',
-            'Cadangkan dan pulihkan data akunmu',
-            _cadanganData,
-            (v) => setState(() => _cadanganData = v),
-          ),
-
-          const SizedBox(height: 12),
-
-          // ===== EXPORT CSV =====
-          Text(
-            'Ekspor Data',
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: AppColors.text(context)),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Ekspor laporan keuangan sebagai file CSV',
-            style: TextStyle(
-                fontSize: 10, color: AppColors.textSub(context)),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _isExporting || sim.isOff
-                  ? null
-                  : () async {
-                      setState(() => _isExporting = true);
-                      try {
-                        await ExportService.exportCSV(sim.state);
-                      } catch (e) {
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Gagal export: $e'),
-                            backgroundColor: AppColors.dangerRed,
-                          ),
-                        );
-                      } finally {
-                        if (mounted) {
-                          setState(() => _isExporting = false);
-                        }
-                      }
-                    },
-              icon: Icon(
-                sim.isOff
-                    ? Icons.lock_outline
-                    : Icons.download_rounded,
-                size: 16,
-              ),
-              label: Text(
-                _isExporting
-                    ? 'Mengekspor...'
-                    : sim.isOff
-                        ? 'Export CSV (mulai simulasi dulu)'
-                        : 'Export CSV',
-                style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primaryGreen,
-                side: BorderSide(
-                  color: sim.isOff
-                      ? AppColors.border(context)
-                      : AppColors.primaryGreen,
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // ===== AKUN TERTAUT =====
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Akun Tertaut',
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.text(context))),
-                  const SizedBox(height: 2),
-                  Text('Google',
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: AppColors.textSub(context))),
-                ],
-              ),
-              OutlinedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Fitur menyusul')),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primaryBlue,
-                  side: const BorderSide(color: AppColors.primaryBlue),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 4),
-                  minimumSize: const Size(0, 28),
-                ),
-                child: const Text('Edit',
-                    style: TextStyle(fontSize: 11)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // ===== KEAMANAN =====
-          Text('Keamanan & Privasi',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text(context))),
-          const SizedBox(height: 2),
-          Text('Ubah kata sandi & autentikasi',
-              style: TextStyle(
-                  fontSize: 10, color: AppColors.textSub(context))),
-          const SizedBox(height: 14),
-
-          // ===== LOGOUT =====
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _logout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.dangerRed,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
-              ),
-              child: const Text('Keluar',
-                  style: TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // ==================== HELPERS ===============================
-  // ============================================================
-  Widget _readonlyField(
-      BuildContext context, String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: TextStyle(
-                fontSize: 9.5, color: AppColors.textSub(context))),
-        const SizedBox(height: 2),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.inputFill(context),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.border(context)),
-          ),
-          child: Text(
-            value,
-            style: TextStyle(
-                fontSize: 11, color: AppColors.text(context)),
-            overflow: TextOverflow.ellipsis,
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _switchRow(
-    BuildContext context,
-    String title,
-    String subtitle,
-    bool value,
-    Function(bool) onChanged,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.text(context))),
-                const SizedBox(height: 2),
-                Text(subtitle,
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: AppColors.textSub(context))),
-              ],
-            ),
-          ),
-          Transform.scale(
-            scale: 0.8,
-            child: Switch(
-              value: value,
-              onChanged: onChanged,
-              activeColor: Colors.white,
-              activeTrackColor: AppColors.primaryGreen,
-            ),
-          ),
-        ],
-      ),
+  Widget _menuItem(IconData icon, String title, {VoidCallback? onTap, Widget? trailing}) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon, color: AppColors.primaryGreen, size: 22),
+      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+      trailing: trailing ?? const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textGrey),
+      shape: const Border(bottom: BorderSide(color: AppColors.offWhite, width: 1)),
     );
   }
 }
